@@ -28,7 +28,7 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
         {
             var producerConfiguration = kafkaOptions.Value.Producers.TryGetValue(topicSource, out var producerConfigurationValue) 
                 ? producerConfigurationValue
-                : throw new ArgumentOutOfRangeException($"Topic name was not found for {nameof(KafkaTopicSource)} {topicSource}");
+                : new ProducerConfig();
 
             _producer = ProducerBuilder(producerConfiguration).Build();
         }
