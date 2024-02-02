@@ -2,6 +2,11 @@
 
 public enum KafkaTopicSource
 {
-    Account,
-    Transaction
+    CustomersRegistration,
+    WorkersRegistration,
+    CustomersUpdate,
+    UsersDeletion,
+    AccountCreation,
+    AccountDeletion,
+    TransactionsCreation
 }

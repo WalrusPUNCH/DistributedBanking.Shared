@@ -30,7 +30,7 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
                 ? producerConfigurationValue
                 : new ProducerConfig();
 
-            _producer = ProducerBuilder(producerConfiguration).Build();
+            _producer = ProducerBuilder(kafkaOptions.Value, producerConfiguration).Build();
         }
         catch (Exception exception)
         {
@@ -39,13 +39,18 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
     }
         
     public async Task<DeliveryResult<string, string>> ProduceAsync(
-        T model, 
+        T value, 
         IDictionary<string, string>? headers = null, 
         CancellationToken cancellationToken = default)
     {
+        if (value == null)
+        {
+            throw new ArgumentNullException(nameof(value), "Value of Kafka message can not be null");
+        }
+        
         try
         {
-            var message = BuildMessage(model, headers);
+            var message = BuildMessage(value, headers);
             var deliveryResult = await _producer.ProduceAsync(_topicName, message, cancellationToken);
                 
             return deliveryResult;
@@ -62,13 +67,18 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
     }
 
     public void Produce(
-        T model, 
+        T value, 
         IDictionary<string, string>? headers = null, 
         Action<DeliveryReport<string, string>>? deliveryHandler = null)
     {
+        if (value == null)
+        {
+            throw new ArgumentNullException(nameof(value), "Value of Kafka message can not be null");
+        }
+        
         try
         {
-            var message = BuildMessage(model, headers);
+            var message = BuildMessage(value, headers);
             _producer.Produce(_topicName, message, deliveryHandler);
         }
         catch (Exception exception)
@@ -82,14 +92,14 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
         }
     }
         
-    private static Message<string, string> BuildMessage(T model, IDictionary<string, string>? headers)
+    private static Message<string, string> BuildMessage(T value, IDictionary<string, string>? headers)
     {
         var messageHeaders = BuildHeaders(headers);
 
         var message = new Message<string, string>
         {
-            Key = headers == null ? null : JsonConvert.SerializeObject(headers),
-            Value = model == null ? null : JsonConvert.SerializeObject(model),
+            Key = headers == null ? string.Empty : JsonConvert.SerializeObject(headers),
+            Value = value == null ? string.Empty : JsonConvert.SerializeObject(value),
             Headers = messageHeaders
         };
 
@@ -100,7 +110,7 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
     {
         var kafkaHeaders = new Headers();
 
-        if (headers != null && !headers.Any())
+        if (headers != null && headers.Any())
         {
             foreach (var (key, value) in headers)
             {
@@ -111,8 +121,10 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
         return kafkaHeaders;
     }
 
-    private ProducerBuilder<string, string> ProducerBuilder(ProducerConfig producerConfiguration)
+    private ProducerBuilder<string, string> ProducerBuilder(KafkaConfigurationBase baseConfiguration, ProducerConfig producerConfiguration)
     {
+        producerConfiguration.BootstrapServers = baseConfiguration.Brokers;
+        producerConfiguration.SecurityProtocol = SecurityProtocol.Plaintext;
         var producerBuilder = new ProducerBuilder<string, string>(producerConfiguration)
             .SetErrorHandler((_, error) =>
             {
