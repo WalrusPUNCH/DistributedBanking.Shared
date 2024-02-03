@@ -1,9 +1,9 @@
-using System.Reactive.Linq;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Shared.Kafka.Options;
+using System.Reactive.Linq;
 
 namespace Shared.Kafka.Services.Implementation;
 
@@ -12,7 +12,7 @@ internal class KafkaConsumerService<TKey, TValue> : IKafkaConsumerService<TKey, 
     private readonly ILogger<KafkaConsumerService<TKey, TValue>> _logger;
     private readonly string _topicName;
 
-    private readonly IConsumer<string, string> _consumer;
+    private readonly IConsumer<string, string>? _consumer;
         
     public KafkaConsumerService(
         ILogger<KafkaConsumerService<TKey, TValue>> logger,
@@ -51,11 +51,16 @@ internal class KafkaConsumerService<TKey, TValue> : IKafkaConsumerService<TKey, 
         
     private IObservable<TValue> ConsumeInternal(TimeSpan timeout, CancellationToken cancellationToken)
     {
-       var consumeTimeout = timeout != default 
+        if (_consumer == null)
+        {
+            return Observable.Empty<TValue>();
+        }
+        
+        var consumeTimeout = timeout != default 
             ? timeout 
             : TimeSpan.FromSeconds(10);
             
-       _consumer.Subscribe(_topicName);
+        _consumer.Subscribe(_topicName);
 
         return Observable.Create<TValue>(async observer =>
         {
@@ -92,10 +97,8 @@ internal class KafkaConsumerService<TKey, TValue> : IKafkaConsumerService<TKey, 
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Unhandled error occured while consuming message from '{Topic}' topic",
-                        _topicName);
-                        
-                    _logger.LogError(string.Join("\n", traceLog));
+                    _logger.LogError(e, "Unhandled error occured while consuming message from '{Topic}' topic. " +
+                                        "Log: {TraceLog}", _topicName, traceLog); //string.Join(" ", traceLog);
                 }
             }
                 
@@ -120,6 +123,6 @@ internal class KafkaConsumerService<TKey, TValue> : IKafkaConsumerService<TKey, 
    
     public void Dispose()
     {
-        _consumer.Dispose();
+        _consumer?.Dispose();
     }
 }
