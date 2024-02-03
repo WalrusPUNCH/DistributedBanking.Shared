@@ -11,7 +11,7 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
 {
     private readonly ILogger _logger;
     private readonly string _topicName;
-    private readonly IProducer<string, string> _producer;
+    private readonly IProducer<string, string>? _producer;
 
     public KafkaProducerService(
         ILogger<KafkaProducerService<T>> logger,
@@ -43,6 +43,11 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
         IDictionary<string, string>? headers = null, 
         CancellationToken cancellationToken = default)
     {
+        if (_producer == null)
+        {
+            throw new InvalidOperationException("Invalid operation. Kafka producer is null");
+        }
+        
         if (value == null)
         {
             throw new ArgumentNullException(nameof(value), "Value of Kafka message can not be null");
@@ -71,6 +76,11 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
         IDictionary<string, string>? headers = null, 
         Action<DeliveryReport<string, string>>? deliveryHandler = null)
     {
+        if (_producer == null)
+        {
+            throw new InvalidOperationException("Invalid operation. Kafka producer is null");
+        }
+        
         if (value == null)
         {
             throw new ArgumentNullException(nameof(value), "Value of Kafka message can not be null");
@@ -139,6 +149,6 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
         
     public void Dispose()
     {
-        _producer.Dispose();
+        _producer?.Dispose();
     }
 }
