@@ -1,12 +1,14 @@
-﻿using System.Reactive.Disposables;
-using System.Reactive.Linq;
-using System.Threading.Tasks.Dataflow;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Shared.Redis.Models;
+using Shared.Redis.Options;
 using StackExchange.Redis;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
+using System.Threading.Tasks.Dataflow;
 
 namespace Shared.Redis.Services.Implementation;
 
@@ -19,10 +21,10 @@ public class RedisProvider : IRedisProvider, IRedisSubscriber
 
     public RedisProvider(
         ILogger<RedisProvider> logger,
-        string connectionString,
+        IOptions<RedisOptions> options,
         Action<ConfigurationOptions>? configureConnection = null)
     {
-        var configurationOptions = ConfigurationOptions.Parse(connectionString, true);
+        var configurationOptions = ConfigurationOptions.Parse(options.Value.ConnectionString, true);
         configureConnection?.Invoke(configurationOptions);
         var connection = ConnectionMultiplexer.Connect(configurationOptions);
         
