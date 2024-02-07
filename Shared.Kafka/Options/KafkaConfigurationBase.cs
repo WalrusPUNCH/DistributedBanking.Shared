@@ -2,6 +2,6 @@
 
 public class KafkaConfigurationBase
 {
-    public string Brokers { get; set; }
-    public Dictionary<KafkaTopicSource, string> Connections { get; set; }
+    public required string Brokers { get; set; }
+    public required Dictionary<KafkaTopicSource, string> Connections { get; set; }
 }

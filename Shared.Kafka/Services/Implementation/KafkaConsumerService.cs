@@ -2,6 +2,7 @@ using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Shared.Kafka.Messages;
 using Shared.Kafka.Options;
 using System.Reactive.Linq;
 
@@ -39,21 +40,21 @@ internal class KafkaConsumerService<TKey, TValue> : IKafkaConsumerService<TKey, 
         }
     }
         
-    public IObservable<TValue> Consume(CancellationToken cancellationToken = default)
+    public IObservable<MessageWrapper<TValue>> Consume(CancellationToken cancellationToken = default)
     {
         return ConsumeInternal(default, cancellationToken);
     }
 
-    public IObservable<TValue> Consume(TimeSpan timeout)
+    public IObservable<MessageWrapper<TValue>> Consume(TimeSpan timeout)
     {
         return ConsumeInternal(timeout, default);
     }
         
-    private IObservable<TValue> ConsumeInternal(TimeSpan timeout, CancellationToken cancellationToken)
+    private IObservable<MessageWrapper<TValue>> ConsumeInternal(TimeSpan timeout, CancellationToken cancellationToken)
     {
         if (_consumer == null)
         {
-            return Observable.Empty<TValue>();
+            return Observable.Empty<MessageWrapper<TValue>>();
         }
         
         var consumeTimeout = timeout != default 
@@ -62,7 +63,7 @@ internal class KafkaConsumerService<TKey, TValue> : IKafkaConsumerService<TKey, 
             
         _consumer.Subscribe(_topicName);
 
-        return Observable.Create<TValue>(async observer =>
+        return Observable.Create<MessageWrapper<TValue>>(async observer =>
         {
             var traceLog = new List<string>();
             while (!cancellationToken.IsCancellationRequested)
@@ -84,9 +85,10 @@ internal class KafkaConsumerService<TKey, TValue> : IKafkaConsumerService<TKey, 
                         _logger.LogWarning("Null message value has been consumed from topic {Topic}", _topicName);
                         continue;
                     }
-                        
+
+                    var offset = consumeResult.TopicPartitionOffset;
                     var consumeValue = JsonConvert.DeserializeObject<TValue>(consumeResult.Message.Value);
-                    observer.OnNext(consumeValue!);
+                    observer.OnNext(new MessageWrapper<TValue>(offset, consumeValue!));
                 }
                 catch (OperationCanceledException e)
                 {

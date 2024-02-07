@@ -57,7 +57,7 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
         {
             var message = BuildMessage(value, headers);
             var deliveryResult = await _producer.ProduceAsync(_topicName, message, cancellationToken);
-                
+            
             return deliveryResult;
         }
         catch (Exception exception)
