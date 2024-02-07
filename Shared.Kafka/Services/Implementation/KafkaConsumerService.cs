@@ -29,9 +29,13 @@ internal class KafkaConsumerService<TKey, TValue> : IKafkaConsumerService<TKey, 
         try
         {
             var consumerConfiguration = kafkaConsumerOptions.Value.Consumers.TryGetValue(topicSource, out var consumerConfigurationValue) 
-                ? consumerConfigurationValue
-                : throw new ArgumentOutOfRangeException($"Topic name was not found for {nameof(KafkaTopicSource)} {topicSource}");
-
+                ? consumerConfigurationValue 
+                : kafkaConsumerOptions.Value.Consumers.TryGetValue(KafkaTopicSource.Default, out var defaultConsumerConfigurationValue) 
+                    ? defaultConsumerConfigurationValue 
+                    : throw new ArgumentOutOfRangeException(
+                        $"Consumer configuration for {nameof(KafkaTopicSource)} {topicSource} was not found " +
+                        "and default configuration is missing too");
+            
             _consumer = GetConsumerBuilder(consumerConfiguration).Build();
         }
         catch (Exception exception)
