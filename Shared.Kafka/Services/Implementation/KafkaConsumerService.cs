@@ -16,26 +16,19 @@ internal class KafkaConsumerService<TKey, TValue> : IKafkaConsumerService<TKey, 
     private readonly IConsumer<string, string>? _consumer;
         
     public KafkaConsumerService(
-        ILogger<KafkaConsumerService<TKey, TValue>> logger,
         IOptions<KafkaConsumerConfiguration> kafkaConsumerOptions,
-        KafkaTopicSource topicSource)
+        KafkaTopicSource topicSource,
+        ILogger<KafkaConsumerService<TKey, TValue>> logger)
     {
         _logger = logger;
-        
+
         _topicName = kafkaConsumerOptions.Value.Connections.TryGetValue(topicSource, out var topicName) 
             ? topicName 
             : throw new ArgumentOutOfRangeException($"Topic name was not found for {nameof(KafkaTopicSource)} {topicSource}");
        
         try
         {
-            var consumerConfiguration = kafkaConsumerOptions.Value.Consumers.TryGetValue(topicSource, out var consumerConfigurationValue) 
-                ? consumerConfigurationValue 
-                : kafkaConsumerOptions.Value.Consumers.TryGetValue(KafkaTopicSource.Default, out var defaultConsumerConfigurationValue) 
-                    ? defaultConsumerConfigurationValue 
-                    : throw new ArgumentOutOfRangeException(
-                        $"Consumer configuration for {nameof(KafkaTopicSource)} {topicSource} was not found " +
-                        "and default configuration is missing too");
-            
+            var consumerConfiguration = BuildConsumerConfig(topicSource, kafkaConsumerOptions.Value);
             _consumer = GetConsumerBuilder(consumerConfiguration).Build();
         }
         catch (Exception exception)
@@ -75,7 +68,7 @@ internal class KafkaConsumerService<TKey, TValue> : IKafkaConsumerService<TKey, 
                 traceLog.Clear();
                 try
                 {
-                    var consumeResult = _consumer.Consume(consumeTimeout);
+                    var consumeResult = _consumer.Consume(/*consumeTimeout*/);
                     if (consumeResult is null)
                     {
                         await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
@@ -110,6 +103,29 @@ internal class KafkaConsumerService<TKey, TValue> : IKafkaConsumerService<TKey, 
                 
             return () => _logger.LogInformation("Disposing consumer for {TopicName}", _topicName);
         }).Retry();
+    }
+
+    private ConsumerConfig BuildConsumerConfig(KafkaTopicSource kafkaTopicSource, KafkaConsumerConfiguration consumerConfigurationOptions)
+    {
+        if (consumerConfigurationOptions == null)
+        {
+            throw new ArgumentNullException(nameof(consumerConfigurationOptions), $"{nameof(KafkaConsumerConfiguration)} value cannot be null");
+        }
+
+        var consumerConfigurationBase = consumerConfigurationOptions.Consumers.TryGetValue(kafkaTopicSource, out var consumerConfigurationValue)
+                ? consumerConfigurationValue
+                : consumerConfigurationOptions.Consumers.TryGetValue(KafkaTopicSource.Default, out var defaultConsumerConfigurationValue)
+                    ? defaultConsumerConfigurationValue
+                    : throw new ArgumentOutOfRangeException(
+                        $"Consumer configuration for {nameof(KafkaTopicSource)} {_topicName} was not found " +
+                        "and default configuration is missing too");
+
+        var consumerConfiguration = new ConsumerConfig(consumerConfigurationBase)
+        {
+            BootstrapServers = consumerConfigurationOptions.Brokers
+        };
+
+        return consumerConfiguration;
     }
 
     private ConsumerBuilder<string, string> GetConsumerBuilder(ConsumerConfig config)

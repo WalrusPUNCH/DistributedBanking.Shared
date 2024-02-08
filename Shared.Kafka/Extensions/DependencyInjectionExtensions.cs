@@ -48,9 +48,9 @@ public static class DependencyInjectionExtensions
         services.Configure<KafkaConsumerConfiguration>(configuration.GetSection(KafkaConfigurationSection));
 
         services.AddSingleton(sp => new KafkaConsumerService<TKey, TValue>(
-            sp.GetRequiredService<ILogger<KafkaConsumerService<TKey, TValue>>>(),
             sp.GetRequiredService<IOptions<KafkaConsumerConfiguration>>(),
-            source));
+            source,
+            sp.GetRequiredService<ILogger<KafkaConsumerService<TKey, TValue>>>()));
         
         services.AddSingleton<IKafkaConsumerService<TKey, TValue>>(x => x.GetRequiredService<KafkaConsumerService<TKey, TValue>>());
         
