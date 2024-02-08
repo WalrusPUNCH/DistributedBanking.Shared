@@ -3,7 +3,7 @@
 public record WorkerRegistrationMessage(
     string FirstName,
     string LastName,
-    DateTime BirtDate,
+    DateTime BirthDate,
     string PhoneNumber,
     string Email,
     string PasswordHash,
@@ -12,6 +12,6 @@ public record WorkerRegistrationMessage(
     string Position,
     Passport Passport,
     Address Address) 
-    : UserRegistrationMessage(FirstName, LastName, BirtDate, PhoneNumber, Email, PasswordHash, Salt, Passport);
+    : UserRegistrationMessage(FirstName, LastName, BirthDate, PhoneNumber, Email, PasswordHash, Salt, Passport);
     
 public record Address(string Country, string Region, string City, string Street, string Building, string PostalCode);
