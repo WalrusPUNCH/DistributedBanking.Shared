@@ -1,7 +1,8 @@
 ﻿using Newtonsoft.Json;
 using Shared.Data.Entities.Constants;
+using Shared.Messaging.Constants;
 
-namespace Shared.Kafka.Messages.Transaction;
+namespace Shared.Messaging.Messages.Transaction;
 
 public record TransactionMessage(
     string SourceAccountId,
@@ -9,7 +10,7 @@ public record TransactionMessage(
     string? DestinationAccountId,
     TransactionType Type,
     decimal Amount,
-    string? Description)
+    string? Description) : MessageBase
 {
     [JsonIgnore]
     public Dictionary<string, string> Headers =>
@@ -25,4 +26,7 @@ public record TransactionMessage(
                 { $"{nameof(DestinationAccountId)}", DestinationAccountId },
                 { $"{nameof(Type)}", Type.ToString() }
             };
+    
+    [JsonIgnore]
+    public override string ResponseChannelPattern => Channel.TransactionsCreation;
 }

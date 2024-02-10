@@ -1,4 +1,4 @@
-﻿namespace Shared.Messaging;
+﻿namespace Shared.Messaging.Constants;
 
 public static class Channel
 {
