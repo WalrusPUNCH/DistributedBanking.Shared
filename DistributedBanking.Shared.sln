@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shared.Data", "Shared.Data\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shared.Kafka", "Shared.Kafka\Shared.Kafka.csproj", "{FA499DA9-FF62-4C89-A1FE-7E03F75071DB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Redis", "Shared.Redis\Shared.Redis.csproj", "{9719FAD1-3451-4FCA-B6C8-9564FA7DB23C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shared.Redis", "Shared.Redis\Shared.Redis.csproj", "{9719FAD1-3451-4FCA-B6C8-9564FA7DB23C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Messaging", "Shared.Messaging\Shared.Messaging.csproj", "{7B2E054C-FEBE-4323-983A-92063C4A3212}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{9719FAD1-3451-4FCA-B6C8-9564FA7DB23C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9719FAD1-3451-4FCA-B6C8-9564FA7DB23C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9719FAD1-3451-4FCA-B6C8-9564FA7DB23C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B2E054C-FEBE-4323-983A-92063C4A3212}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B2E054C-FEBE-4323-983A-92063C4A3212}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B2E054C-FEBE-4323-983A-92063C4A3212}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B2E054C-FEBE-4323-983A-92063C4A3212}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
