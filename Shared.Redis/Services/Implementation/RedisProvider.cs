@@ -170,6 +170,39 @@ public class RedisProvider : IRedisProvider, IRedisSubscriber
         });
     }
     
+    public async Task<T> SingleObserveChannel<T>(string channel)
+    {
+        //return await ObserveChannel<T>(channel).SingleAsync(); // TODO TEST THIS FIRST
+        
+        return await Observable.Create<T>(observer =>
+        {
+            // Subscribe to the Redis channel
+            _subscriber.Subscribe(channel, Handler, CommandFlags.FireAndForget);
+
+            // Return a disposal method to unsubscribe from the channel when the Observable is disposed
+            return Disposable.Create(() => _subscriber.Unsubscribe(channel, Handler, CommandFlags.FireAndForget));
+
+            // The handler which will be executed on every received Redis message
+            void Handler(RedisChannel redisChannel, RedisValue value)
+            {
+                try
+                {
+                    if (value != default)
+                    {
+                        var message = JsonConvert.DeserializeObject<T>(value!);
+                        observer.OnNext(message!); 
+                        observer.OnCompleted();
+                    }
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogError(exception, "Error occurred while trying to observe '{Channel}' channel", channel);
+                    observer.OnError(exception);
+                }
+            }
+        }).SingleAsync();
+    }
+    
     public async Task UnSubAsync(string channel)
     {
         await _subscriber.UnsubscribeAsync(
