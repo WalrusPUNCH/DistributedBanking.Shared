@@ -5,6 +5,8 @@ namespace Shared.Redis.Services;
 public interface IRedisSubscriber
 {
     Task<IAsyncDisposable> SubAsync<T>(string channel, ActionBlock<T> action);
+    
+    Task<T> SingleObserveChannel<T>(string channel);
 
     Task PubAsync<T>(string channel, T value);
     
