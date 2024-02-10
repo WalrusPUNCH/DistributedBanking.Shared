@@ -1,4 +1,7 @@
-﻿namespace Shared.Kafka.Messages.Identity.Registration;
+﻿using Newtonsoft.Json;
+using Shared.Messaging.Constants;
+
+namespace Shared.Messaging.Messages.Identity.Registration;
 
 public record WorkerRegistrationMessage(
     string FirstName,
@@ -11,7 +14,11 @@ public record WorkerRegistrationMessage(
     string Role,
     string Position,
     Passport Passport,
-    Address Address) 
-    : UserRegistrationMessage(FirstName, LastName, BirthDate, PhoneNumber, Email, PasswordHash, Salt, Passport);
+    Address Address)
+    : UserRegistrationMessage(FirstName, LastName, BirthDate, PhoneNumber, Email, PasswordHash, Salt, Passport)
+{
+    [JsonIgnore]
+    public override string ResponseChannelPattern => Channel.WorkersRegistration;
+}
     
 public record Address(string Country, string Region, string City, string Street, string Building, string PostalCode);

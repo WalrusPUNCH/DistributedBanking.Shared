@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
+using Shared.Messaging.Constants;
 
-namespace Shared.Kafka.Messages.Identity.Registration;
+namespace Shared.Messaging.Messages.Identity.Registration;
 
 public record UserRegistrationMessage(
     string FirstName,
@@ -10,13 +11,16 @@ public record UserRegistrationMessage(
     string Email,
     string PasswordHash,
     string Salt,
-    Passport Passport)
+    Passport Passport) : MessageBase
 {
     [JsonIgnore]
     public Dictionary<string, string> Headers => new()
     {
         { $"{nameof(Email)}", Email }
     };
+    
+    [JsonIgnore]
+    public override string ResponseChannelPattern => Channel.CustomersRegistration;
 }
 
 public record Passport(
