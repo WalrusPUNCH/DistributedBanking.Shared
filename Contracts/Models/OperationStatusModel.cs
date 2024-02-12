@@ -15,6 +15,12 @@ public class OperationStatusModel
         EndedSuccessfully = false,
         Message = message
     };
+    
+    public static OperationStatusModel Processing() => new()
+    {
+        EndedSuccessfully = true,
+        Message = "Your operation is still processing. Check for it results later"
+    };
 }
 
 public class OperationStatusModel<T> : OperationStatusModel
@@ -31,6 +37,13 @@ public class OperationStatusModel<T> : OperationStatusModel
     {
         EndedSuccessfully = false,
         Message = message,
+        ResponseValue = default
+    };
+    
+    public static OperationStatusModel<T> Processing() => new()
+    {
+        EndedSuccessfully = true,
+        Message = "Your operation is still processing. Check for it results later",
         ResponseValue = default
     };
 }
