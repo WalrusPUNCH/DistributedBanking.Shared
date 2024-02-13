@@ -2,6 +2,7 @@
 
 public static class Channel
 {
+    public const string RoleCreation = "roles:creation";
     public const string CustomersRegistration = "customers:registration";
     public const string WorkersRegistration = "workers:registration";
     public const string CustomersUpdate = "customers:update";
