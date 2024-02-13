@@ -3,6 +3,7 @@
 public enum KafkaTopicSource
 {
     Default,
+    RoleCreation,
     CustomersRegistration,
     WorkersRegistration,
     CustomersUpdate,
