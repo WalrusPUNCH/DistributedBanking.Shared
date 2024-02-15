@@ -6,7 +6,7 @@ namespace Shared.Messaging.Messages.Identity.Registration;
 public record UserRegistrationMessage(
     string FirstName,
     string LastName,
-    DateTime BirtDate,
+    DateTime BirthDate,
     string PhoneNumber,
     string Email,
     string PasswordHash,
