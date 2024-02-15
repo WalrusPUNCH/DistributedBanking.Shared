@@ -14,8 +14,11 @@ namespace Shared.Redis.Services.Implementation;
 
 public class RedisProvider : IRedisProvider, IRedisSubscriber
 {
-    private readonly IDatabase _db;
-    private readonly ISubscriber _subscriber;
+    private readonly ConfigurationOptions _configurationOptions;
+    private Lazy<ConnectionMultiplexer> Connection => new (() => ConnectionMultiplexer.Connect(_configurationOptions));
+    private IDatabase Database => Connection.Value.GetDatabase();
+    private ISubscriber Subscriber => Connection.Value.GetSubscriber();
+    
     private readonly JsonSerializerSettings _defaultJsonSettings;
     private readonly ILogger<RedisProvider> _logger;
 
@@ -26,10 +29,7 @@ public class RedisProvider : IRedisProvider, IRedisSubscriber
     {
         var configurationOptions = ConfigurationOptions.Parse(options.Value.ConnectionString, true);
         configureConnection?.Invoke(configurationOptions);
-        var connection = ConnectionMultiplexer.Connect(configurationOptions);
-        
-        _db = connection.GetDatabase();
-        _subscriber = connection.GetSubscriber();
+        _configurationOptions = configurationOptions;
         
         _defaultJsonSettings = new JsonSerializerSettings 
         { 
@@ -42,13 +42,13 @@ public class RedisProvider : IRedisProvider, IRedisSubscriber
         
         _logger = logger;
             
-        _db.Multiplexer.ConnectionFailed += (_, ev) =>
+        Database.Multiplexer.ConnectionFailed += (_, ev) =>
         {
             _logger.LogError(ev.Exception, "Redis connection ({ConnectionType}) to the ({@Endpoint}) has failed! " + 
                                            "Failure: {FailureType}", ev.ConnectionType, ev.EndPoint, ev.FailureType);
         };
 
-        _db.Multiplexer.ConnectionRestored += (_, ev) =>
+        Database.Multiplexer.ConnectionRestored += (_, ev) =>
         {
             _logger.LogInformation("Redis connection ({ConnectionType}) to the ({@Endpoint}) has restored!", 
                 ev.ConnectionType, ev.EndPoint);
@@ -59,7 +59,7 @@ public class RedisProvider : IRedisProvider, IRedisSubscriber
     
     public async Task<T?> GetAsync<T>(string key)
     {
-        var value = await _db.StringGetAsync(key);
+        var value = await Database.StringGetAsync(key);
         
         return value.IsNullOrEmpty ? default : JsonConvert.DeserializeObject<T>(value!);
     }
@@ -75,12 +75,12 @@ public class RedisProvider : IRedisProvider, IRedisSubscriber
         }
 
         var json = JsonConvert.SerializeObject(value, _defaultJsonSettings);
-        await _db.StringSetAsync(key, json, ttl);
+        await Database.StringSetAsync(key, json, ttl);
     }
 
     public Task SetManyAsync<T>(IReadOnlyDictionary<string, T> values, TimeSpan ttl)
     {
-        var batch = _db.CreateBatch();
+        var batch = Database.CreateBatch();
 
         var tasks = values.Select(s =>
         {
@@ -94,12 +94,12 @@ public class RedisProvider : IRedisProvider, IRedisSubscriber
     
     public async Task<bool> DeleteAsync(string key)
     {
-        return await _db.KeyDeleteAsync(key);
+        return await Database.KeyDeleteAsync(key);
     }
     
     public Task<long> DeleteManyAsync(IEnumerable<string> keys)
     {
-        return _db.KeyDeleteAsync(keys.Select(x => (RedisKey) x).ToArray(), CommandFlags.FireAndForget);
+        return Database.KeyDeleteAsync(keys.Select(x => (RedisKey) x).ToArray(), CommandFlags.FireAndForget);
     }
     
     #endregion
@@ -108,9 +108,9 @@ public class RedisProvider : IRedisProvider, IRedisSubscriber
 
     public async Task<IAsyncDisposable> SubAsync<T>(string channel, ActionBlock<T> action)
     {
-        await _subscriber.SubscribeAsync(channel, Handler, CommandFlags.FireAndForget).ConfigureAwait(false);
+        await Subscriber.SubscribeAsync(channel, Handler, CommandFlags.FireAndForget).ConfigureAwait(false);
 
-        return new AsyncDisposeProxy(() => _subscriber.UnsubscribeAsync(channel));
+        return new AsyncDisposeProxy(() => Subscriber.UnsubscribeAsync(channel));
 
         void Handler(RedisChannel redisChannel, RedisValue value)
         {
@@ -125,7 +125,7 @@ public class RedisProvider : IRedisProvider, IRedisSubscriber
     public async Task PubAsync<T>(string channel, T value)
     {
         var json = JsonConvert.SerializeObject(value, _defaultJsonSettings);
-        await _subscriber.PublishAsync(channel, json, CommandFlags.FireAndForget);
+        await Subscriber.PublishAsync(channel, json, CommandFlags.FireAndForget);
     }
 
     public async Task PubManyAsync<T>(string channel, IReadOnlyDictionary<string, T> values)
@@ -134,7 +134,7 @@ public class RedisProvider : IRedisProvider, IRedisSubscriber
         {
             var json = JsonConvert.SerializeObject(s.Value);
             var entityChannelName = s.Key;
-            return _subscriber.PublishAsync(entityChannelName, json, CommandFlags.FireAndForget);
+            return Subscriber.PublishAsync(entityChannelName, json, CommandFlags.FireAndForget);
         }).ToArray();
 
         await Task.WhenAll(tasks);
@@ -145,42 +145,10 @@ public class RedisProvider : IRedisProvider, IRedisSubscriber
         return Observable.Create<T>(observer =>
         {
             // Subscribe to the Redis channel
-            _subscriber.Subscribe(channel, Handler, CommandFlags.FireAndForget);
+            Subscriber.Subscribe(channel, Handler, CommandFlags.FireAndForget);
 
             // Return a disposal method to unsubscribe from the channel when the Observable is disposed
-            return Disposable.Create(() => _subscriber.Unsubscribe(channel, Handler, CommandFlags.FireAndForget));
-
-            // The handler which will be executed on every received Redis message
-            void Handler(RedisChannel redisChannel, RedisValue value)
-            {
-                try
-                {
-                    if (value != default)
-                    {
-                        var message = JsonConvert.DeserializeObject<T>(value!);
-                        observer.OnNext(message!); 
-                    }
-                }
-                catch (Exception exception)
-                {
-                    _logger.LogError(exception, "Error occurred while trying to observe '{Channel}' channel", channel);
-                    observer.OnError(exception);
-                }
-            }
-        });
-    }
-    
-    public async Task<T> SingleObserveChannel<T>(string channel)
-    {
-        //return await ObserveChannel<T>(channel).SingleAsync(); // TODO TEST THIS FIRST
-        
-        return await Observable.Create<T>(observer =>
-        {
-            // Subscribe to the Redis channel
-            _subscriber.Subscribe(channel, Handler, CommandFlags.FireAndForget);
-
-            // Return a disposal method to unsubscribe from the channel when the Observable is disposed
-            return Disposable.Create(() => _subscriber.Unsubscribe(channel, Handler, CommandFlags.FireAndForget));
+            return Disposable.Create(() => Subscriber.Unsubscribe(channel, Handler, CommandFlags.FireAndForget));
 
             // The handler which will be executed on every received Redis message
             void Handler(RedisChannel redisChannel, RedisValue value)
@@ -200,14 +168,52 @@ public class RedisProvider : IRedisProvider, IRedisSubscriber
                     observer.OnError(exception);
                 }
             }
+        });
+    }
+    
+    public async Task<T> SingleObserveChannel<T>(string channel)
+    {
+        //return await ObserveChannel<T>(channel).SingleAsync();
+
+        return await Observable.Create<T>(observer =>
+        {
+            // Subscribe to the Redis channel
+            Subscriber.Subscribe(channel, Handler, CommandFlags.FireAndForget);
+
+            // Return a disposal method to unsubscribe from the channel when the Observable is disposed
+            return Task.FromResult(Disposable.Create(() => Subscriber.Unsubscribe(channel, Handler, CommandFlags.FireAndForget)));
+
+            // The handler which will be executed on every received Redis message
+            void Handler(RedisChannel redisChannel, RedisValue value)
+            {
+                try
+                {
+                    if (value != default)
+                    {
+                        var message = JsonConvert.DeserializeObject<T>(value!);
+                        observer.OnNext(message!);
+                        observer.OnCompleted();
+                    }
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogError(exception, "Error occurred while trying to observe '{Channel}' channel", channel);
+                    observer.OnError(exception);
+                }
+            }
         }).SingleAsync();
     }
     
-    public async Task UnSubAsync(string channel)
+    public async Task UnsubAsync(string channel)
     {
-        await _subscriber.UnsubscribeAsync(
+        await Subscriber.UnsubscribeAsync(
             channel,
-            (_, _) => { }, CommandFlags.FireAndForget).ConfigureAwait(false);
+            null, CommandFlags.FireAndForget).ConfigureAwait(false);
+    }
+    
+    public void Unsub(string channel)
+    {
+        Subscriber.Unsubscribe(channel, null, CommandFlags.FireAndForget);
     }
 
     #endregion

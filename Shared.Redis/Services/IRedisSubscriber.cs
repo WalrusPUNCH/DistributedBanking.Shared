@@ -6,13 +6,15 @@ public interface IRedisSubscriber
 {
     Task<IAsyncDisposable> SubAsync<T>(string channel, ActionBlock<T> action);
     
-    Task<T> SingleObserveChannel<T>(string channel);
-
     Task PubAsync<T>(string channel, T value);
     
     Task PubManyAsync<T>(string channel, IReadOnlyDictionary<string, T> values);
     
     IObservable<T> ObserveChannel<T>(string channel);
     
-    Task UnSubAsync(string channel);
+    Task<T> SingleObserveChannel<T>(string channel);
+
+    void Unsub(string channel);
+    
+    Task UnsubAsync(string channel);
 }
