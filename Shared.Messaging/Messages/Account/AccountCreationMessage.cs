@@ -6,7 +6,7 @@ namespace Shared.Messaging.Messages.Account;
 
 public record AccountCreationMessage(
     string CustomerId,
-    string AccountName,
+    string Name,
     AccountType Type) : MessageBase
 {
     [JsonIgnore]
