@@ -173,8 +173,6 @@ public class RedisProvider : IRedisProvider, IRedisSubscriber
     
     public async Task<T> SingleObserveChannel<T>(string channel)
     {
-        //return await ObserveChannel<T>(channel).SingleAsync();
-
         return await Observable.Create<T>(observer =>
         {
             // Subscribe to the Redis channel
