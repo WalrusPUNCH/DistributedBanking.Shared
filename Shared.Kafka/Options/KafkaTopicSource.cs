@@ -10,5 +10,6 @@ public enum KafkaTopicSource
     UsersDeletion,
     AccountCreation,
     AccountDeletion,
-    TransactionsCreation
+    TransactionsCreation,
+    Commands
 }
