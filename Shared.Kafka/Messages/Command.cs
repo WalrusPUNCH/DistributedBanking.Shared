@@ -3,7 +3,6 @@ using Shared.Data.Entities;
 namespace Shared.Kafka.Messages;
 
 public record Command(
-    string Database,
     string Collection,
     string Id,
     CommandType Operation,
