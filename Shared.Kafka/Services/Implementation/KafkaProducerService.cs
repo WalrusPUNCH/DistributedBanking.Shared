@@ -108,7 +108,7 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
 
         var message = new Message<string, string>
         {
-            Key = headers == null ? string.Empty : JsonConvert.SerializeObject(headers),
+            Key = typeof(T).Name,
             Value = value == null ? string.Empty : JsonConvert.SerializeObject(value),
             Headers = messageHeaders
         };
@@ -133,6 +133,7 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
 
     private ProducerBuilder<string, string> ProducerBuilder(KafkaConfigurationBase baseConfiguration, ProducerConfig producerConfiguration)
     {
+        producerConfiguration.Partitioner = Partitioner.Consistent;
         producerConfiguration.BootstrapServers = baseConfiguration.Brokers;
         producerConfiguration.SecurityProtocol = SecurityProtocol.Plaintext;
         var producerBuilder = new ProducerBuilder<string, string>(producerConfiguration)
