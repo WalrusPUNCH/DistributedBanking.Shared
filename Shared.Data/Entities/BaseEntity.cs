@@ -5,9 +5,9 @@ using Shared.Data.Converters;
 
 namespace Shared.Data.Entities;
 
-public abstract class BaseEntity
+public class BaseEntity
 {
     [BsonId]
-    [JsonConverter(typeof(ObjectIdJsonConverter)), JsonPropertyName("_id")]
+    [JsonConverter(typeof(ObjectIdJsonConverter)), Newtonsoft.Json.JsonConverter(typeof(NewtonsoftObjectIdJsonConverter)), JsonPropertyName("_id")]
     public ObjectId Id { get; set; } = ObjectId.GenerateNewId();
 }
