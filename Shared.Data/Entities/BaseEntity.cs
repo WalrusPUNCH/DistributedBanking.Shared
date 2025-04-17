@@ -9,5 +9,5 @@ public abstract class BaseEntity
 {
     [BsonId]
     [JsonConverter(typeof(ObjectIdJsonConverter)), JsonPropertyName("_id")]
-    public ObjectId Id { get; set; }
+    public ObjectId Id { get; set; } = ObjectId.GenerateNewId();
 }
