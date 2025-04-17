@@ -7,5 +7,6 @@ public record Command(
     string Id,
     CommandType Operation,
     DateTime CreatedAt,
-    Dictionary<string, object?> Payload,
+    object Payload,
+    Type PayloadType,
     int Priority = 50);
