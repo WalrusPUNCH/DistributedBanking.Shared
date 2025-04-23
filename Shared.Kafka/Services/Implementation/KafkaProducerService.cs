@@ -40,6 +40,7 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
         
     public async Task<DeliveryResult<string, string>> ProduceAsync(
         T value, 
+        string? key = null,
         IDictionary<string, string>? headers = null, 
         CancellationToken cancellationToken = default)
     {
@@ -55,7 +56,7 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
         
         try
         {
-            var message = BuildMessage(value, headers);
+            var message = BuildMessage(value, key, headers);
             var deliveryResult = await _producer.ProduceAsync(_topicName, message, cancellationToken);
             
             return deliveryResult;
@@ -73,6 +74,7 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
 
     public void Produce(
         T value, 
+        string? key = null,
         IDictionary<string, string>? headers = null, 
         Action<DeliveryReport<string, string>>? deliveryHandler = null)
     {
@@ -88,7 +90,7 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
         
         try
         {
-            var message = BuildMessage(value, headers);
+            var message = BuildMessage(value, key, headers);
             _producer.Produce(_topicName, message, deliveryHandler);
         }
         catch (Exception exception)
@@ -102,13 +104,13 @@ internal class KafkaProducerService<T> : IKafkaProducerService<T>
         }
     }
         
-    private static Message<string, string> BuildMessage(T value, IDictionary<string, string>? headers)
+    private static Message<string, string> BuildMessage(T value, string? key, IDictionary<string, string>? headers)
     {
         var messageHeaders = BuildHeaders(headers);
 
         var message = new Message<string, string>
         {
-            Key = typeof(T).Name,
+            Key = key ?? typeof(T).Name,
             Value = value == null ? string.Empty : JsonConvert.SerializeObject(value),
             Headers = messageHeaders
         };
